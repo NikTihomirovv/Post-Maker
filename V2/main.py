@@ -38,12 +38,7 @@ class Executor(Composition):
 
             for _parsed_article in _parsed_articles:
 
-                _article_brief_data = _parsed_article.get('article_brief_data')
-                if not _article_brief_data:
-                    self._logger.error(f'   ❌ Пропускаем статью. Нет краткой информации')
-                    continue
-
-                _article_link = _article_brief_data.get('link', '')
+                _article_link = _parsed_article.get('link', '')
                 if not _article_link:
                     self._logger.error(f'   ❌ Пропускаем статью. Нет ссылки')
                     continue
@@ -76,7 +71,7 @@ class Executor(Composition):
             self._logger.info('✅ Обработка выключена!')
             return _unprocess_articles
 
-        processed_articles = []
+        prepared_posts = []
         _processed_count = 0
 
         self._logger.info(f'✅ Получено {len(_unprocess_articles)} статей для обработки')
@@ -85,9 +80,8 @@ class Executor(Composition):
             for idx, _unprocessed_article in enumerate(_unprocess_articles, 1):
                 self._logger.info(f'    ✅ Начинаем обработку статьи {idx}')
 
-                _article_text = _unprocessed_article.get('article_text', '')
-                _article_brief_data = _unprocessed_article.get('article_brief_data')
-                _article_title = _article_brief_data.get('title', '')
+                _article_text = _unprocessed_article.get('text', '')
+                _article_title = _unprocessed_article.get('title', '')
 
 
                 # ============ ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ ============
@@ -165,49 +159,49 @@ class Executor(Composition):
                 _unprocessed_article['ai_description_translated'] = _ai_description_translated
                 _unprocessed_article['images'] = _images if _images else []
                                 
-                # Создаем объект статьи через фабрику
-                _article_obj = self.aricles_manager.create_new_article(**_unprocessed_article)
-                if not _article_obj:
-                    self._logger.error(f'   ❌ Не удалось создать объект статьи: {_article_title[:50]}...')
+                # Создаем объект поста через фабрику
+                _post_obj = self.post_manager.create_post(**_unprocessed_article)
+                if not _post_obj:
+                    self._logger.error(f'   ❌ Не удалось создать объект поста: {_article_title[:50]}...')
                     continue
 
-                self._logger.info(f'    ✅ Успешно создан объект статьи: {_article_title[:50]}...')
-                processed_articles.append(_article_obj)
+                self._logger.info(f'    ✅ Успешно создан объект поста: {_article_title[:50]}...')
+                prepared_posts.append(_post_obj)
                 _processed_count += 1
 
             self._logger.info(f'✅ Успешно создано {_processed_count} объектов')
-            return processed_articles if processed_articles else []
+            return prepared_posts if prepared_posts else []
 
         except Exception as e:
             self._logger.error(f'❌ Критическая ошибка в обработке новых статей: {e}')
             traceback.print_exc()
 
 
-    def save_to_db(self, _article_objects: list[Any]) -> None:
+    def save_to_db(self, _post_objects: list[Any]) -> None:
 
         if not self.settings.logic.get('save_to_db', False):
             self._logger.info('✅ Сохранение в бд выключено!')
             return None
 
-        self._logger.info(f'✅ Сохраняем в бд {len(_article_objects)} статей')
+        self._logger.info(f'✅ Сохраняем в бд {len(_post_objects)} постов')
         _saved_db = 0
 
         try:
-            for _idx, _article_object in enumerate(_article_objects, 1):
+            for _idx, _post_object in enumerate(_post_objects, 1):
                  
                 success = self.db_manager.create(
                     _to_table=self._save_data_to_table,
                     _field_to_compare=self._field_to_compare,
-                    _data=_article_object
+                    _data=_post_object
                 )
                              
                 if success:
                     _saved_db += 1
-                    self._logger.info(f'    ✅ Статья {_idx} успешно сохранена')
+                    self._logger.info(f'    ✅ Пост {_idx} успешно сохранен')
                 else:
-                    self._logger.error(f'   ❌ Ошибка сохранения статьи: {_idx}')
+                    self._logger.error(f'   ❌ Ошибка сохранения поста: {_idx}')
 
-            self._logger.info(f'✅ Сохранено в бд {_saved_db} статей')
+            self._logger.info(f'✅ Сохранено в бд {_saved_db} постов')
             return None
 
         except Exception as e:
@@ -222,31 +216,31 @@ class Executor(Composition):
             return None
 
         try: 
-            _articles = self.db_manager.read(self._read_from_table, 'VK_published', 0)
-            self._logger.info(f'✅ Найдено {len(_articles)} неопубликованных статей')
+            _posts = self.db_manager.read(self._read_from_table, 'VK_published', 0)
+            self._logger.info(f'✅ Найдено {len(_posts)} неопубликованных постов')
 
             _published_count = 0
 
-            for _article in _articles:
+            for _post in _posts:
 
-                _article_id = _article.get('id')
-                _article_title = _article.get('title_translated') or _article.get('title', 'Без названия')
-                _article_text = _article.get('ai_description_translated') or _article.get('ai_description', '')
-                _article_source = _article.get('source', 'Неизвестный источник')
-                _article_link = _article.get('link', '')
-                _article_pub_date = _article.get('published', 'Дата неизвестна')
-                _article_images = self.db_manager.read('images', 'article_id', _article_id)
+                _post_id = _post.get('id')
+                _post_title = _post.get('title_translated') or _post.get('title', 'Без названия')
+                _post_text = _post.get('ai_description_translated') or _post.get('ai_description', '')
+                _post_source = _post.get('source', 'Неизвестный источник')
+                _post_link = _post.get('link', '')
+                _post_pub_date = _post.get('published', 'Дата неизвестна')
+                _post_images = self.db_manager.read('images', 'article_id', _post_id)
 
-                self._logger.info(f'    ✅ Создаем публикацию для статьи {_article_id}')
+                self._logger.info(f'    ✅ Создаем публикацию для поста {_post_id}')
 
                 post_text = f"""
-                🔬 {_article_title}
+                🔬 {_post_title}
                 
-                {_article_text}
+                {_post_text}
                 
-                📌 Источник: {_article_source}
-                📅 Дата: {_article_pub_date}
-                🔗 Подробнее: {_article_link}
+                📌 Источник: {_post_source}
+                📅 Дата: {_post_pub_date}
+                🔗 Подробнее: {_post_link}
                 
                 #наука #исследование #медицина
                 """
@@ -254,17 +248,17 @@ class Executor(Composition):
                 result = self.vk_manager.create_post(message=post_text.strip())            
                 if result:
                     _published_count += 1
-                    self._logger.info(f'    ✅ Пост создан (ID: {_article_id})')
+                    self._logger.info(f'    ✅ Пост создан (ID: {_post_id})')
                                         
                     self.db_manager.update_field_by_id(
                         _table=self._save_data_to_table,
-                        _id=_article_id,
+                        _id=_post_id,
                         _field='VK_published',
                         _value=1
                     )
                     
                 else:
-                    self._logger.error(f'   ❌ Ошибка публикации (ID: {_article_id})')
+                    self._logger.error(f'   ❌ Ошибка публикации (ID: {_post_id})')
                                     
                 time.sleep(2)
 
@@ -292,24 +286,24 @@ class Executor(Composition):
                 self._logger.info(f'    ❌ Ошибка создания папки для постов')
                 return None
 
-            _articles = self.db_manager.read(self._read_from_table, 'VK_published', 0)
-            self._logger.info(f'✅ Найдено {len(_articles)} неопубликованных статей')
+            _posts = self.db_manager.read(self._read_from_table, 'VK_published', 0)
+            self._logger.info(f'✅ Найдено {len(_posts)} неопубликованных постов')
 
             _published_count = 0
             
-            for _article in _articles:
+            for _post in _posts:
             
-                _article_id = _article.get('id')
-                _article_title = _article.get('title_translated') or _article.get('title', 'Без названия')
-                _article_text = _article.get('ai_description_translated') or _article.get('ai_description', '')
-                _article_source = _article.get('source', 'Неизвестный источник')
-                _article_link = _article.get('link', '')
-                _article_pub_date = _article.get('published', 'Дата неизвестна')
-                _article_images = self.db_manager.read('images', 'article_id', _article_id)
+                _post_id = _post.get('id')
+                _post_title = _post.get('title_translated') or _post.get('title', 'Без названия')
+                _post_text = _post.get('ai_description_translated') or _post.get('ai_description', '')
+                _post_source = _post.get('source', 'Неизвестный источник')
+                _post_link = _post.get('link', '')
+                _post_pub_date = _post.get('published', 'Дата неизвестна')
+                _post_images = self.db_manager.read('images', 'article_id', _post_id)
 
-                self._logger.info(f'    ✅ Создаем папку для статьи {_article_id}')
+                self._logger.info(f'    ✅ Создаем папку для поста {_post_id}')
 
-                _post_folder_name = _article_title[:25]
+                _post_folder_name = _post_title[:25]
                 _post_folder_name = re.sub(r'[<>:"/\\|?*]', '_', _post_folder_name)
                 _post_folder_name = _post_folder_name.rstrip('. ')
 
@@ -322,34 +316,34 @@ class Executor(Composition):
                 if (not _post_folder_path.exists() and not _post_folder_path.is_dir()) or \
                     (not _post_image_path.exists() and not _post_image_path.is_dir()):
 
-                    self._logger.info(f'    ❌ Ошибка создания папки для поста {_article_title[:25]}')
+                    self._logger.info(f'    ❌ Ошибка создания папки для поста {_post_title[:25]}')
                     continue
 
-                _post_text = f"""
-                🔬 {_article_title}
+                _post_text_formed = f"""
+                🔬 {_post_title}
                                 
-                {_article_text}
+                {_post_text}
                                 
-                📌 Источник: {_article_source}
-                📅 Дата: {_article_pub_date}
-                🔗 Подробнее: {_article_link}
+                📌 Источник: {_post_source}
+                📅 Дата: {_post_pub_date}
+                🔗 Подробнее: {_post_link}
                                 
                 #наука #исследование #медицина
                 """
 
                 _post_text_file = _post_folder_path / 'post_text.txt'
                 with open(_post_text_file, 'w', encoding='utf-8') as f:
-                    f.write(_post_text)
+                    f.write(_post_text_formed)
 
                 if not _post_text_file.exists():
-                    self._logger.info(f'    ❌ Ошибка создания текстового файла для поста {_article_title[:25]}')
+                    self._logger.info(f'    ❌ Ошибка создания текстового файла для поста {_post_title[:25]}')
                     continue
 
-                for _idx, _article_image in enumerate(_article_images, 1):
+                for _idx, _post_image in enumerate(_post_images, 1):
 
                     try:
-                        if isinstance(_article_image, dict):
-                            _image_data_str = _article_image.get('image_base64', '')
+                        if isinstance(_post_image, dict):
+                            _image_data_str = _post_image.get('image_base64', '')
                         
                         if not _image_data_str:
                             self._logger.error(f'    ❌ Пустое изображение {_idx}')
@@ -369,7 +363,7 @@ class Executor(Composition):
 
                 self.db_manager.update_field_by_id(
                     _table=self._save_data_to_table,
-                    _id=_article_id,
+                    _id=_post_id,
                     _field='VK_published',
                     _value=1
                 )
@@ -397,8 +391,8 @@ def main():
     logic = Executor()
 
     unprocessed_articles = logic.get_unprocessed_articles()
-    article_objects = logic.process_new_articles(unprocessed_articles)
-    logic.save_to_db(article_objects)
+    posts_obj = logic.process_new_articles(unprocessed_articles)
+    logic.save_to_db(posts_obj)
     logic.publicate_unpublished()
     logic.save_unpublished_to_file()
     logic.destroy()

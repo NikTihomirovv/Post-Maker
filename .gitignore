@@ -1,8 +1,21 @@
-.env
-*.env
-.env.*
-articles.db
-articles_fallback.db
-venv
-Posts
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Виртуальное окружение
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Файлы с данными
+*.db
+*.sqlite3
