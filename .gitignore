@@ -1,0 +1,8 @@
+.env
+*.env
+.env.*
+articles.db
+articles_fallback.db
+venv
+Posts
+__pycache__
