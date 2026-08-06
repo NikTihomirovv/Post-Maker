@@ -25,9 +25,14 @@ class Settings:
     logic = {
         'parse': True,
         'process': True,
-        'save_to_db': False,
-        'save_to_file': False,
-        'publicate': False
+        'generate_img': True,
+        'use_default_img': True,                    # применится если генерация отключена
+        'generate_prompt_to_img_model': True,
+        'generate_short_description': True,
+        'translate': True,
+        'save_to_db': True,
+        'save_to_file': True,
+        'publicate': True
     }
 
     # VK ===========================================================================================
@@ -56,7 +61,7 @@ class Settings:
                 'date_from': DATE_FROM,        # 01.06.26
                 'date_to': DATE_TO,          # 17.07.26
             },
-            'number_of_articles': 100
+            'number_of_articles': 1
         }
     ]
 
@@ -84,69 +89,13 @@ class Settings:
     }
 
     # DB ===========================================================================================
-    _tables = {
-        'articles': [
-            # === ПОЛЯ ИЗ _Article ===
-            'id TEXT PRIMARY KEY',  # UUID - используем TEXT вместо INTEGER
-            'source TEXT',
-            'article_text TEXT',
-            'title_translated TEXT'
-            'article_text_translated TEXT',
-            'ai_description TEXT',
-            'ai_description_translated TEXT',
-            
-            # === ПОЛЯ ИЗ _Article_Brief_Data ===
-            'title TEXT',
-            'link TEXT UNIQUE',
-            'summary TEXT',
-            'published TEXT',
-            'feed_id TEXT',  # переименовано, чтобы не конфликтовать с id
-            'guidislink BOOLEAN DEFAULT 0',
-            
-            # === ПОЛЯ ИЗ _TitleDetail ===
-            'title_detail_type TEXT',
-            'title_detail_language TEXT',
-            'title_detail_base TEXT',
-            'title_detail_value TEXT',
-            
-            # === ПОЛЯ ИЗ _SummaryDetail ===
-            'summary_detail_type TEXT',
-            'summary_detail_language TEXT',
-            'summary_detail_base TEXT',
-            'summary_detail_value TEXT',
-            
-            # === ПОЛЯ ИЗ _Link (список) ===
-            # Для списка ссылок используем JSON
-            'links_json TEXT',
-            
-            # === ПОЛЯ ИЗ published_parsed (time.struct_time) ===
-            'published_parsed_year INTEGER',
-            'published_parsed_month INTEGER',
-            'published_parsed_day INTEGER',
-            'published_parsed_hour INTEGER',
-            'published_parsed_minute INTEGER',
-            'published_parsed_second INTEGER',
-            'published_parsed_weekday INTEGER',
-            'published_parsed_yday INTEGER',
-            'published_parsed_isdst INTEGER',
-            
-            # === СЛУЖЕБНЫЕ ПОЛЯ ===
-            'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
-            'updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
-            'VK_published BOOLEAN DEFAULT 0'
+    POST_CREATE_TABLE = 'post'
+    POST_READ_TABLE  = 'post'
+    POST_UPDATE_TABLE = 'post'
+    POST_DELETE_TABLE = 'post'
+    POST_FIELD_TO_COMPARE = 'link'
 
-            # === Связанные таблицы ===
-
-        ],
-        'images': [
-            'id INTEGER PRIMARY KEY AUTOINCREMENT',
-            'article_id TEXT NOT NULL',
-            'image_base64 TEXT',
-        ]
-    }
-    save_data_to_table = 'articles'
-    read_from_table = 'articles'
-    field_to_compare = 'link'
+    IMAGE_TABLE = 'image'
             
 
     

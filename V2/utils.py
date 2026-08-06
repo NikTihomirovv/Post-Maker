@@ -161,45 +161,23 @@ def _safe_translate(translator, text: str, source_lang: str, target_lang: str) -
 
 
 def string_prompts_to_list(raw_text: str) -> list[str]:
-        """
-        Парсит сырой текст от модели в список промптов
-        
-        Args:
-            raw_text: текст с промптами, разделенными запятыми или точками
-            
-        Returns:
-            list[str]: список промптов
-        """
-        if not raw_text:
-            return []
-        
-        # Пробуем разделить по точкам с пробелом
-        if '. ' in raw_text:
-            prompts = [p.strip() for p in raw_text.split('. ') if p.strip()]
-        # Или по запятым
-        elif ', ' in raw_text:
-            prompts = [p.strip() for p in raw_text.split(', ') if p.strip()]
-        # Или просто по запятым
-        elif ',' in raw_text:
-            prompts = [p.strip() for p in raw_text.split(',') if p.strip()]
-        else:
-            # Если ничего не подошло - разбиваем по предложениям
-            prompts = [p.strip() + '.' for p in raw_text.split('.') if p.strip()]
-        
-        # Очищаем от номеров и лишних символов
-        cleaned = []
-        for p in prompts:
-            # Удаляем номера (1., 2., 3., etc)
-            p = p.lstrip('123456789. ').strip()
-            # Удаляем лишние кавычки
-            p = p.strip('"\'')
-            if p:
-                # Добавляем точку в конце если её нет
-                if not p.endswith('.') and not p.endswith('!'):
-                    p += '.'
-                cleaned.append(p)
-        
-        return cleaned
+    """
+    Парсит сырой текст от модели в список промптов
+    """
+    if not raw_text:
+        return []
+    raw_text = raw_text.strip()
+    
+    import re
+    parts = re.split(r'\.\s+', raw_text)
+    
+    cleaned = []
+    for p in parts:
+        p = ' '.join(p.strip().split())
+        if p:
+            cleaned.append(p + '.')
+    
+    return cleaned
 
 
 def singleton(cls):

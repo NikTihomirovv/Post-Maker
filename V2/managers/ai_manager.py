@@ -164,7 +164,7 @@ class TextModel:
             return 'Ошибка: модель не доступна'
 
         try:
-            # self._logger.info(f'✅ Запрос к модели: {_prompt[:50]}...')
+            # self._logger.info(f'     Запрос к модели: {_prompt[:50]}...')
             
             payload = {
                 'model': self._model_name,
@@ -270,10 +270,10 @@ class ImageModel:
         images = []
         _total = len(_prompts)
         
-        # self._logger.info(f'🎨 Начинаем генерацию {_total} изображений...')
+        self._logger.info(f'🎨 Начинаем генерацию {_total} изображений...')
         
         for idx, prompt in enumerate(_prompts, 1):
-            # self._logger.info(f'  📝 {idx}/{_total}: {prompt[:50]}...')
+            self._logger.info(f'  📝 {idx}/{_total}: {prompt}...')
             
             try:
                 encoded_prompt = prompt.replace(' ', '%20').replace('"', '%22')
@@ -286,7 +286,7 @@ class ImageModel:
                 if _response.status_code == 200:
                     image_base64 = base64.b64encode(_response.content).decode('utf-8')
                     images.append(image_base64)
-                    # self._logger.info(f'✅ Готово ({_delta:.2f} сек)')
+                    self._logger.info(f'✅ Готово ({_delta:.2f} сек)')
                 else:
                     self._logger.error(f'❌ Ошибка: {_response.status_code}')
                     images.append(None)
@@ -295,7 +295,7 @@ class ImageModel:
                 self._logger.error(f'❌ Ошибка: {e}')
                 images.append(None)
         
-        success_count = sum(1 for img in images if img is not None)
+        # success_count = sum(1 for img in images if img is not None)
         # self._logger.info(f'✅ Генерация завершена. Успешно: {success_count}/{_total}')
         
         return images if images else None

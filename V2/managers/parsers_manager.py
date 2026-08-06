@@ -255,6 +255,10 @@ class _RssParser:
                 reverse=True
             )
 
+            for article in _filtered_articles:
+                if 'pub_date' in article and isinstance(article['pub_date'], datetime):
+                    article['pub_date'] = article['pub_date'].strftime('%Y-%m-%d %H:%M:%S')
+
             # Ограничиваем количество
             articles_to_process = _filtered_articles[:self._number_of_articles]
             

@@ -14,15 +14,28 @@ class Executor(Composition):
     def __init__(self):
         super().__init__()
         self._logger = logging.getLogger(__name__)
-        self._read_from_table = self.settings.read_from_table
-        self._save_data_to_table = self.settings.save_data_to_table
-        self._field_to_compare = self.settings.field_to_compare
+
+        self._POST_READ_TABLE = self.settings.POST_READ_TABLE
+        self._POST_CREATE_TABLE = self.settings.POST_CREATE_TABLE
+        self._POST_UPDATE_TABLE = self.settings.POST_UPDATE_TABLE
+        self._POST_FIELD_TO_COMPARE = self.settings.POST_FIELD_TO_COMPARE
+
+        self._DEFAULT_IMG_NAMES = ['default_img_1.jpg', 'default_img_2.jpg', 'default_img_3.jpg', 'default_img_4.jpg', 'default_img_5.jpg']
+        self._DEFAULT_IMG_DIR = Path(__file__).parent / 'resources'
+
+        self._start()
+
+
+    def _start(self):
+        _empty_dataclass = self.post_manager.get_empty_dataclass()
+        self.db_manager.dataclass_to_sql_structure(_empty_dataclass)
+        self.db_manager.create_tables_if_not_exists()
 
 
     def get_unprocessed_articles(self) -> list[dict]:
 
         if not self.settings.logic.get('parse', False):
-            self._logger.info('✅ Парсинг выключен!')
+            self._logger.info('⏭️ Парсинг выключен!')
             return None
              
         unprocesed_articles = []
@@ -44,8 +57,8 @@ class Executor(Composition):
                     continue
 
                 existed = self.db_manager.read(
-                    self._save_data_to_table,
-                    self._field_to_compare, 
+                    self._POST_READ_TABLE,
+                    self._POST_FIELD_TO_COMPARE, 
                     _article_link,
                     1
                 )
@@ -68,8 +81,7 @@ class Executor(Composition):
     def process_new_articles(self, _unprocess_articles: list[dict]) -> list[Any]:
 
         if not self.settings.logic.get('process', False):
-            self._logger.info('✅ Обработка выключена!')
-            return _unprocess_articles
+            self._logger.info('⏭️ Обработка выключена!')
 
         prepared_posts = []
         _processed_count = 0
@@ -78,77 +90,149 @@ class Executor(Composition):
 
         try:
             for idx, _unprocessed_article in enumerate(_unprocess_articles, 1):
-                self._logger.info(f'    ✅ Начинаем обработку статьи {idx}')
 
                 _article_text = _unprocessed_article.get('text', '')
                 _article_title = _unprocessed_article.get('title', '')
+                _unprocessed_article['is_published_vk'] = False
+                _unprocessed_article['is_saved_to_folder'] = False
 
+                _title_translated = 'Не переведено'
+                _article_text_translated = 'Не переведено'
+                _ai_description = 'Не создано'
+                _ai_description_translated = 'Не переведено'
+                _images = []
 
-                # ============ ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ ============
-                self._logger.info('    ✅ Генерируем промпты для изображений')
-                _prompt_to_image_model = self.ai_manager.process_text(
-                    _article_text,
-                    self.settings.models['text_model']['prompts']['prompt_to_image_model']
-                )
-                                 
-                if _prompt_to_image_model:
-                    _prompt_to_image_models = string_prompts_to_list(_prompt_to_image_model)
-                    self._logger.info(f'    ✅ Сгенерировано {len(_prompt_to_image_model)} промптов')
+                if not self.settings.logic.get('process', False):
+                    self._logger.info(f'    ⏭️ Обработка статей отключена!')
 
-                    self._logger.info('    ✅ Генерируем изображения')
-                    _images = self.ai_manager.generate_image(_prompt_to_image_models[:5])
-                    if _images: 
-                        self._logger.info(f'    ✅ Сгенерировано {len(_images)} изображений')
-
-                    else: 
-                        self._logger.warning('      ⚠️ Не удалось сгенерировать изображения')
-                        _images = []
-                    
                 else:
-                    self._logger.warning('      ⚠️ Не удалось сгенерировать промпты для изображений')
-                    _images = []
+                    self._logger.info(f'    =' + '='*50)
+                    self._logger.info(f'    ✅ Начинаем обработку статьи {idx}')
 
+                    if not self.settings.logic.get('generate_img', False):
+                        self._logger.info('    ⏭️ Генерация изображений отключена!')
 
-                # ============ ГЕНЕРАЦИЯ ОПИСАНИЯ ============
-                self._logger.info('    ✅ Генерируем краткое описание')
-                _ai_description = self.ai_manager.process_text(
-                    _article_text,
-                    self.settings.models['text_model']['prompts']['short_description_prompt']
-                )
+                        if self.settings.logic.get('use_default_img', False):
+                            self._logger.info(f'    ✅ Используем дефолтные изображения')
+
+                            try:
+                                if not isinstance(self._DEFAULT_IMG_NAMES, list):
+                                    self._logger.error(f'❌ Ошибка: _DEFAULT_IMG_NAMES должен быть списком, получен {type(self._DEFAULT_IMG_NAMES)}')
+
+                                if not self._DEFAULT_IMG_NAMES:
+                                    self._logger.error('❌ Список дефолтных изображений пуст')
                                 
-                if not _ai_description:
-                    self._logger.warning('      ⚠️ Не удалось сгенерировать описание, используем оригинальный текст')
-                    _ai_description = _article_text[:500] + '...'
+                                _default_img_loaded = []
+                                for _img in self._DEFAULT_IMG_NAMES:
+                                    _img_path = self._DEFAULT_IMG_DIR / _img
+                                    if not _img_path.exists():
+                                        self._logger.error(f'❌ Дефолтное изображение не найдено: {_img_path}')
+                                        continue
+                                        
+                                    with open(_img_path, 'rb') as f:
+                                        img_data = f.read()
+                                        img_base64 = base64.b64encode(img_data).decode('utf-8')
+                                        _default_img_loaded.append(img_base64)
+                                
+                                if _default_img_loaded:
+                                    _images = _default_img_loaded
+                                    self._logger.info(f'    ✅ Загружено {len(_default_img_loaded)} дефолтных изображений')
+                                else:
+                                    self._logger.error('    ❌ Не удалось загрузить ни одного дефолтного изображения')
+                                    
+                            except Exception as e:
+                                self._logger.error(f'❌ Ошибка загрузки дефолтных изображений: {e}')
+
+                    else:
+                        # ============ ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ ============
+                        if not self.settings.logic.get('generate_prompt_to_img_model', False):
+
+                            _prompt_to_image_model = '''
+                                Scientific illustration of the main discovery from the article.
+                                Medical visualization of the research topic.
+                                Laboratory setting showing key experimental setup.
+                                Molecular or cellular level representation of the study findings.
+                                Educational infographic summarizing the main research results.
+                            '''
+                            self._logger.info('    ⏭️ Генерация промптов для изображений отключена. Используем дефолтные.')
+                            
+                        else:
+                            self._logger.info('    ✅ Генерируем промпты для изображений')
+                            _prompt_to_image_model = self.ai_manager.process_text(
+                                _article_text,
+                                self.settings.models['text_model']['prompts']['prompt_to_image_model']
+                            )
+                                        
+                        if _prompt_to_image_model:
+                            
+                            _prompt_to_image_models = string_prompts_to_list(_prompt_to_image_model)
+                            self._logger.info(f'    ✅ Получено {len(_prompt_to_image_models)} промптов')
+                        
+                            self._logger.info('    ✅ Генерируем изображения')
+                            
+                            print(_prompt_to_image_model)
+                            _images = self.ai_manager.generate_image(_prompt_to_image_models[:5])
+                            if _images: 
+                                self._logger.info(f'    ✅ Получено {len(_images)} изображений')
+
+                            else: 
+                                self._logger.warning('      ⚠️ Не удалось сгенерировать изображения')
+                                _images = []
+                            
+                        else:
+                            self._logger.warning('      ⚠️ Не удалось сгенерировать промпты для изображений')
+                            _images = []
 
 
-                # ============ ПЕРЕВОД ============
-                self._logger.info('    ✅ Начинаем перевод текстов.')
-                # Переводим заголовок
-                _title_translated = translate_long_text(
-                    text=_article_title,
-                    source_lang='en',
-                    target_lang='ru',
-                    max_length=10000,
-                    delay=0.5
-                )
-                                
-                # Переводим текст статьи
-                _article_text_translated = translate_long_text(
-                    text=_article_text,
-                    source_lang='en',
-                    target_lang='ru',
-                    max_length=10000,
-                    delay=0.5
-                )
-                                
-                # Переводим описание
-                _ai_description_translated = translate_long_text(
-                    text=_ai_description,
-                    source_lang='en',
-                    target_lang='ru',
-                    max_length=10000,
-                    delay=0.5
-                )
+                    # ============ ГЕНЕРАЦИЯ ОПИСАНИЯ ============
+                    if not self.settings.logic.get('generate_short_description', False):
+                        self._logger.info('    ⏭️ Генерация краткого описания отключена!')
+
+                    else:
+                        self._logger.info('    ✅ Генерируем краткое описание')
+                        _ai_description = self.ai_manager.process_text(
+                            _article_text,
+                            self.settings.models['text_model']['prompts']['short_description_prompt']
+                        )
+                                        
+                        if not _ai_description:
+                            self._logger.warning('      ⚠️ Не удалось сгенерировать описание, используем оригинальный текст')
+                            _ai_description = _article_text[:500] + '...'
+
+
+                    # ============ ПЕРЕВОД ============
+                    if not self.settings.logic.get('translate', False):
+                        self._logger.info('    ⏭️ Перевод статей отключен!')
+                    
+                    else:
+
+                        self._logger.info('    ✅ Начинаем перевод текстов.')
+                        # Переводим заголовок
+                        _title_translated = translate_long_text(
+                            text=_article_title,
+                            source_lang='en',
+                            target_lang='ru',
+                            max_length=10000,
+                            delay=0.5
+                        )
+                                        
+                        # Переводим текст статьи
+                        _article_text_translated = translate_long_text(
+                            text=_article_text,
+                            source_lang='en',
+                            target_lang='ru',
+                            max_length=10000,
+                            delay=0.5
+                        )
+                                        
+                        # Переводим описание
+                        _ai_description_translated = translate_long_text(
+                            text=_ai_description,
+                            source_lang='en',
+                            target_lang='ru',
+                            max_length=10000,
+                            delay=0.5
+                        )
 
 
                 # ============ СОЗДАНИЕ ОБЪЕКТА СТАТЬИ ============
@@ -157,7 +241,7 @@ class Executor(Composition):
                 _unprocessed_article['article_text_translated'] = _article_text_translated
                 _unprocessed_article['ai_description'] = _ai_description
                 _unprocessed_article['ai_description_translated'] = _ai_description_translated
-                _unprocessed_article['images'] = _images if _images else []
+                _unprocessed_article['image'] = _images if _images else []
                                 
                 # Создаем объект поста через фабрику
                 _post_obj = self.post_manager.create_post(**_unprocessed_article)
@@ -169,7 +253,7 @@ class Executor(Composition):
                 prepared_posts.append(_post_obj)
                 _processed_count += 1
 
-            self._logger.info(f'✅ Успешно создано {_processed_count} объектов')
+            self._logger.info(f'    ✅ Успешно создано {_processed_count} объектов')
             return prepared_posts if prepared_posts else []
 
         except Exception as e:
@@ -180,7 +264,7 @@ class Executor(Composition):
     def save_to_db(self, _post_objects: list[Any]) -> None:
 
         if not self.settings.logic.get('save_to_db', False):
-            self._logger.info('✅ Сохранение в бд выключено!')
+            self._logger.info('⏭️ Сохранение в бд выключено!')
             return None
 
         self._logger.info(f'✅ Сохраняем в бд {len(_post_objects)} постов')
@@ -189,9 +273,9 @@ class Executor(Composition):
         try:
             for _idx, _post_object in enumerate(_post_objects, 1):
                  
-                success = self.db_manager.create(
-                    _to_table=self._save_data_to_table,
-                    _field_to_compare=self._field_to_compare,
+                success = self.db_manager.create_from_dataclass(
+                    _to_table=self._POST_CREATE_TABLE,
+                    _field_to_compare=self._POST_FIELD_TO_COMPARE,
                     _data=_post_object
                 )
                              
@@ -212,24 +296,24 @@ class Executor(Composition):
     def publicate_unpublished(self) -> None:
 
         if not self.settings.logic.get('publicate', False):
-            self._logger.info('✅ Публикации выключены!')
+            self._logger.info('⏭️ Публикации выключены!')
             return None
 
         try: 
-            _posts = self.db_manager.read(self._read_from_table, 'VK_published', 0)
+            _posts = self.db_manager.read(self._POST_READ_TABLE, 'is_published_vk', 0)
             self._logger.info(f'✅ Найдено {len(_posts)} неопубликованных постов')
 
             _published_count = 0
 
             for _post in _posts:
 
-                _post_id = _post.get('id')
-                _post_title = _post.get('title_translated') or _post.get('title', 'Без названия')
-                _post_text = _post.get('ai_description_translated') or _post.get('ai_description', '')
-                _post_source = _post.get('source', 'Неизвестный источник')
-                _post_link = _post.get('link', '')
-                _post_pub_date = _post.get('published', 'Дата неизвестна')
-                _post_images = self.db_manager.read('images', 'article_id', _post_id)
+                _post_id = _post.get('ID')
+                _post_title = _post.get('TITLE_TRANSLATED')
+                _post_text = _post.get('AI_DESCRIPTION_TRANSLATED')
+                _post_source = _post.get('SOURCE', 'Неизвестный источник')
+                _post_link = _post.get('LINK', '')
+                _post_pub_date = _post.get('PUB_DATE', 'Дата неизвестна')
+                _post_images = self.db_manager.read('image', 'post_id', _post_id)
 
                 self._logger.info(f'    ✅ Создаем публикацию для поста {_post_id}')
 
@@ -251,9 +335,9 @@ class Executor(Composition):
                     self._logger.info(f'    ✅ Пост создан (ID: {_post_id})')
                                         
                     self.db_manager.update_field_by_id(
-                        _table=self._save_data_to_table,
+                        _table=self._POST_UPDATE_TABLE,
                         _id=_post_id,
-                        _field='VK_published',
+                        _field='is_published_vk',
                         _value=1
                     )
                     
@@ -273,7 +357,7 @@ class Executor(Composition):
     def save_unpublished_to_file(self) -> None:
 
         if not self.settings.logic.get('save_to_file', False):
-            self._logger.info('✅ Сохранение в файл выключено!')
+            self._logger.info('⏭️ Сохранение в файл выключено!')
             return None
 
         try:
@@ -286,20 +370,20 @@ class Executor(Composition):
                 self._logger.info(f'    ❌ Ошибка создания папки для постов')
                 return None
 
-            _posts = self.db_manager.read(self._read_from_table, 'VK_published', 0)
-            self._logger.info(f'✅ Найдено {len(_posts)} неопубликованных постов')
+            _posts = self.db_manager.read(self._POST_READ_TABLE, 'is_saved_to_folder', 0)
+            self._logger.info(f'✅ Найдено {len(_posts)} несохраненных в файл постов')
 
             _published_count = 0
             
             for _post in _posts:
             
-                _post_id = _post.get('id')
-                _post_title = _post.get('title_translated') or _post.get('title', 'Без названия')
-                _post_text = _post.get('ai_description_translated') or _post.get('ai_description', '')
-                _post_source = _post.get('source', 'Неизвестный источник')
-                _post_link = _post.get('link', '')
-                _post_pub_date = _post.get('published', 'Дата неизвестна')
-                _post_images = self.db_manager.read('images', 'article_id', _post_id)
+                _post_id = _post.get('ID')
+                _post_title = _post.get('TITLE_TRANSLATED')
+                _post_text = _post.get('AI_DESCRIPTION_TRANSLATED')
+                _post_source = _post.get('SOURCE', 'Неизвестный источник')
+                _post_link = _post.get('LINK', '')
+                _post_pub_date = _post.get('PUB_DATE', 'Дата неизвестна')
+                _post_images = self.db_manager.read('image', 'post_id', _post_id)
 
                 self._logger.info(f'    ✅ Создаем папку для поста {_post_id}')
 
@@ -343,7 +427,7 @@ class Executor(Composition):
 
                     try:
                         if isinstance(_post_image, dict):
-                            _image_data_str = _post_image.get('image_base64', '')
+                            _image_data_str = _post_image.get('IMAGE_BASE64', '')
                         
                         if not _image_data_str:
                             self._logger.error(f'    ❌ Пустое изображение {_idx}')
@@ -362,9 +446,9 @@ class Executor(Composition):
                 _published_count+=1
 
                 self.db_manager.update_field_by_id(
-                    _table=self._save_data_to_table,
+                    _table=self._POST_UPDATE_TABLE,
                     _id=_post_id,
-                    _field='VK_published',
+                    _field='is_saved_to_folder',
                     _value=1
                 )
 
@@ -391,8 +475,11 @@ def main():
     logic = Executor()
 
     unprocessed_articles = logic.get_unprocessed_articles()
-    posts_obj = logic.process_new_articles(unprocessed_articles)
-    logic.save_to_db(posts_obj)
+    if unprocessed_articles:
+        posts_obj = logic.process_new_articles(unprocessed_articles)
+        if posts_obj:
+            logic.save_to_db(posts_obj)
+
     logic.publicate_unpublished()
     logic.save_unpublished_to_file()
     logic.destroy()

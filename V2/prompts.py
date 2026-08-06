@@ -35,6 +35,7 @@ SHORT_DESCRIPTION_PROMPT = '''
         Article to summarize:
     '''
 
+
 PROMPT_TO_IMAGE_MODEL = '''
     You are an expert at creating image prompts for scientific articles.
     
