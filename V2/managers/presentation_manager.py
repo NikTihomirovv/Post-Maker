@@ -279,7 +279,7 @@ class _BaseObj:
 
     def _apply_text_style(self, _text_frame) -> None:
         """Применяет стиль к тексту"""
-        
+
         try:
             if not _text_frame or not self._text_style:
                 return
@@ -312,6 +312,7 @@ class _BaseObj:
                     b = int(color_str[5:7], 16)
                     paragraph.font.color.rgb = RGBColor(r, g, b)
                     self._logger.debug(f'      ✅ Применен цвет: {color_str}')
+
             
             # Выравнивание
             if hasattr(self._text_style, 'alignment') and self._text_style.alignment:
@@ -328,17 +329,16 @@ class _BaseObj:
 
 
     def _check_alignment(self) -> None:
-
         _prs_width_emu = self._px_to_emu(self._prs_width)
         _prs_height_emu = self._px_to_emu(self._prs_height)
 
         if self._vertically_centered:
-            self._y = (_prs_height_emu / 2 - self._y / 2)
-            self._logger.debug('      ✅ Центрируем по вертикали')
+            self._y = (_prs_height_emu - self._h) // 2
+            self._logger.debug(f'      ✅ Центрируем по вертикали: y={self._y} EMU')
         
         if self._horizontally_centred:
-            self._x = (_prs_width_emu / 2 - self._x / 2)
-            self._logger.debug('      ✅ Центрируем по горизонтали')
+            self._x = (_prs_width_emu - self._w) // 2
+            self._logger.debug(f'      ✅ Центрируем по горизонтали: x={self._x} EMU')
 
 
 class _Title(_BaseObj):
@@ -635,12 +635,12 @@ def create_test_prs_data() -> PresentationData:
                         horizontally_centred=True,
             
                         text_style=_ObjectTextStyle(
-                            font_size=10,
+                            font_size=50,
                             font_name='Arial',
                             bold=False,
                             italic=False,
                             color='#FFFFFF',
-                            alignment='left'
+                            alignment='right'
                         ),
                         z_index=0
                     )
