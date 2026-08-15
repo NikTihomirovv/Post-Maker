@@ -81,71 +81,29 @@ class Executor(Composition):
         try:
             if not isinstance(_unprocess_articles, list) or len(_unprocess_articles) == 0:
                 self._logger.info(f'    ❌ Не удалось получить статьи для обработки')
-                return []
+                return 
             else:
                 self._logger.info(f'✅ Получено {len(_unprocess_articles)} статей для обработки')
 
 
             if not self.settings.logic.get('process', False):
                 self._logger.info(f'    ⏭️ Обработка статей отключена!')
-                _extended_articles = self._extend_article_data_with_plug(_unprocess_articles)
+                self._extend_article_data_with_plug(_unprocess_articles)
 
             else:
                 self._logger.info(f'    ✅ Начинаем обработку статей')
-                _extended_articles = self._extend_article_data(_unprocess_articles)
+                self._extend_article_data(_unprocess_articles)
 
-
-            if _extended_articles:
-                _post_objects = self._create_post_objects(_extended_articles=_extended_articles)
-
-            if _post_objects:
-                return _post_objects
-
-            else: 
-                return []
+            return
 
         except Exception as e:
             self._logger.error(f'❌ Критическая ошибка в обработке новых статей: {e}')
             traceback.print_exc()
 
 
-    def _create_post_objects(self, _extended_articles: list[Any]) -> list:
-
-        try:
-            _processed_count = 0
-            _prepared_posts = []
-
-            if not isinstance(_extended_articles, list) or len(_extended_articles) == 0:
-                self._logger.error(f'   ❌ Ошибка в получении расширенных статей')
-                return []
-
-            else: 
-                self._logger.error(f'    ✅ Получен: {len(_extended_articles)} расширенных статей для создания объектов поста')
-
-            for _idx, _extended_article in enumerate(_extended_articles, 1):
-
-                _post_obj = self.post_manager.create_post(**_extended_article)
-                self._save_to_db(_post_obj)
-            
-                if not _post_obj:
-                    self._logger.error(f'   ❌ Не удалось создать объект поста')
-                    continue
-            
-                self._logger.info(f'    ✅ Успешно создан объект поста для статьи: {_idx}')
-                _prepared_posts.append(_post_obj)
-                _processed_count += 1
-            
-            self._logger.info(f'    ✅ Успешно создано {_processed_count} объектов поста')
-            return _prepared_posts if _prepared_posts else []
-
-        except Exception as e:
-            self._logger.error(f'❌ Ошибка в создании объекта поста: {e}')
-
-
     def _extend_article_data_with_plug(self, _unprocess_articles: list[Any]) -> list[Any]:
 
         try: 
-            _extended_articles = []
             self._logger.info(f'    =' + '='*50)
 
             for idx, _unprocessed_article in enumerate(_unprocess_articles, 1):
@@ -161,25 +119,16 @@ class Executor(Composition):
                 _unprocessed_article['ai_description_translated'] = 'Не обработано'
                 _unprocessed_article['image'] = []
 
-                _extended_articles.append(_unprocessed_article)
-
-            if _extended_articles:
-                self._logger.info(f'    ✅ Заглушки успешно созданы для {len(_extended_articles)} статей')
-                return _extended_articles
-
-            else:
-                self._logger.info(f'    ❌ Ошибка в создании заглушек')
-                return []
+                self._create_post_object(_unprocessed_article)
+            return 
 
         except Exception as e:
             self._logger.error(f'❌ Ошибка в создании заглушки: {e}')
 
 
-    def _extend_article_data(self, _unprocess_articles: list[Any]) -> list[Any]:
+    def _extend_article_data(self, _unprocess_articles: list[Any]) -> None:
 
         try:
-            _extended_articles = []
-
             for idx, _unprocessed_article in enumerate(_unprocess_articles, 1):
             
                 self._logger.info(f'    =' + '='*50)
@@ -205,16 +154,9 @@ class Executor(Composition):
                 _unprocessed_article['ai_description_translated'] = _ai_description_translated if _ai_description_translated else ''
                 _unprocessed_article['image'] = _images if _images else []
 
-                _extended_articles.append(_unprocessed_article)       
-        
-            if _extended_articles:
-                self._logger.info(f'    ✅ Успешно добавлена информация для  {len(_extended_articles)} статей')
-                return _extended_articles
-        
-            else:
-                self._logger.info(f'    ❌ Ошибка в добавлении информации')
-                return []
-        
+                self._create_post_object(_unprocessed_article)
+            return 
+    
         except Exception as e:
             self._logger.error(f'❌ Ошибка в добавлении информации: {e}')
 
@@ -357,6 +299,12 @@ class Executor(Composition):
                 self._logger.info('    ⏭️ Перевод статей отключен!')
                 return ''
 
+            if _text == '':
+                self._logger.info('    ⏭️ Текст отсутствует')
+                return ''
+
+            self._logger.info(f'    ✅ Текст для перевода: {_text[:30]}')
+
             detected_lang = detect_language(_text[:500])
             if detected_lang == 'ru':
                 self._logger.info('    ⏭️ Текст уже на русском')
@@ -391,14 +339,38 @@ class Executor(Composition):
             self._logger.error(f'❌ Ошибка при переводе текста: {e}')
 
 
+    def _create_post_object(self, _extended_article: dict[Any]) -> None:
+
+        try:
+            if not isinstance(_extended_article, dict):
+                self._logger.error(f'   ❌ Ошибка в получении расширенных статей')
+                return None
+
+            else: 
+                self._logger.error(f'    ✅ Получена расширенная статья для создания объектов поста')
+
+            _post_obj = self.post_manager.create_post(**_extended_article)
+            self._save_to_db(_post_obj)
+            
+            if not _post_obj:
+                self._logger.error(f'   ❌ Не удалось создать объект поста')
+                return None
+            
+            self._logger.info(f'    ✅ Успешно создан объект поста для статьи')
+            return None
+
+        except Exception as e:
+            self._logger.error(f'❌ Ошибка в создании объекта поста: {e}')
+
+
     def _save_to_db(self, _post_object) -> None:
 
         try:
             if not self.settings.logic.get('save_to_db', False):
                 self._logger.info('⏭️ Сохранение в бд выключено!')
-                return None
+                return
 
-            self._logger.info(f'✅ Сохраняем пост в бд')
+            self._logger.info(f'    ✅ Сохраняем пост в бд')
 
             success = self.db_manager.create_from_dataclass(
                 _to_table=self._POST_CREATE_TABLE,
@@ -411,7 +383,7 @@ class Executor(Composition):
             else:
                 self._logger.error(f'   ❌ Ошибка сохранения поста')
 
-            return None
+            return 
 
         except Exception as e:
             self._logger.error(f'❌ Критическая ошибка при сохранении в бд: {e}')

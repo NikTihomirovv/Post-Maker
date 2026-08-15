@@ -14,10 +14,10 @@ Top Society: https://www.sciencedaily.com/rss/top/society.xml
 Strange & Offbeat: https://www.sciencedaily.com/rss/strange_offbeat.xml
 Most Popular: https://www.sciencedaily.com/rss/most_popular.xml
 
-The Guardian (Здоровье): https://www.theguardian.com/health/rss
-NPR (Здоровье): https://feeds.npr.org/1128/rss.xml
-New York Times (Здоровье): https://rss.nytimes.com/services/xml/rss/nyt/Health.xml
-Cardiovascular: https://www.bioworld.com/rss/topic/240-cardiovascular
+The Guardian (Здоровье): https://www.theguardian.com/health/rss                             Добавил
+NPR (Здоровье): https://feeds.npr.org/1128/rss.xml                                          Добавил
+New York Times (Здоровье): https://rss.nytimes.com/services/xml/rss/nyt/Health.xml          403
+Cardiovascular: https://www.bioworld.com/rss/topic/240-cardiovascular                       Нужна другая структура парсинга
 Aging: https://www.bioworld.com/rss/topic/566-aging
 Biomarkers: https://www.bioworld.com/rss/topic/543-biomarkers
 Diagnostics: https://www.bioworld.com/rss/21

@@ -424,7 +424,7 @@ class _DB_SQL_Lite(DataclassToSql):
                             filtered_columns.append(col)
                             filtered_values.append(val)
                         else:
-                            self._logger.warning(f'⚠️ Колонка {col} не найдена в таблице {_table_name}, пропускаем')
+                            self._logger.warning(f'    ⚠️ Колонка {col} не найдена в таблице {_table_name}, пропускаем')
                     
                     # Проверяем, остались ли поля для вставки
                     if not filtered_columns:
@@ -439,7 +439,7 @@ class _DB_SQL_Lite(DataclassToSql):
                     self._cursor.execute(_query, filtered_values)
                     self._connection.commit()
                     
-                    self._logger.info(f"✅ Запись создана в таблице {_table_name} (полей: {len(filtered_columns)})")
+                    self._logger.info(f"    ✅ Запись создана в таблице {_table_name} (полей: {len(filtered_columns)})")
 
             return True
 

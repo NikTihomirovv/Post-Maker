@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-DAYS_DELTA = 10
+DAYS_DELTA = 1
+NUMBER_OF_ARTICLES_FROM_SOURCE = 1
 
 today = datetime.now()
 yesterday = today - timedelta(days=DAYS_DELTA)
@@ -23,7 +24,7 @@ class Settings:
 
     # ==============================================================================================
     mode = {
-        'debug': False,                               # Проходит весь workflow кроме публикации, использует бесплатные модели
+        'debug': True,                              # Проходит весь workflow кроме публикации, использует бесплатные модели
         'text_only': True,                           # Создает только тектсовые посты
     }
 
@@ -33,7 +34,7 @@ class Settings:
         'generate_img': True,
         'use_default_img': False,                    # применится если генерация отключена
         'generate_prompt_to_img_model': True,
-        'generate_short_description': True,
+        'generate_short_description': False,
         'translate': True,
         'save_to_db': True,
         'save_to_file': True,
@@ -66,7 +67,43 @@ class Settings:
                 'date_from': DATE_FROM,        # 01.06.26
                 'date_to': DATE_TO,          # 17.07.26
             },
-            'number_of_articles': 5
+            'number_of_articles': NUMBER_OF_ARTICLES_FROM_SOURCE
+        },
+        {
+            'enable': True,
+            'source_name': 'the guardian',
+            'parser_type': 'rss',
+            'url': 'https://www.theguardian.com/health/rss',
+            'headers': {'User-Agent': 'Mozilla/5.0'},
+            'mapping_structure': (
+                ('title','title'),
+                ('summary', 'summary'),
+                ('link', 'link'),
+                ('published', 'pub_date'),
+            ),
+            'dates': {
+                'date_from': DATE_FROM,        # 01.06.26
+                'date_to': DATE_TO,          # 17.07.26
+            },
+            'number_of_articles': NUMBER_OF_ARTICLES_FROM_SOURCE
+        },
+        {
+            'enable': True,
+            'source_name': 'NPR',
+            'parser_type': 'rss',
+            'url': 'https://feeds.npr.org/1128/rss.xml',
+            'headers': {'User-Agent': 'Mozilla/5.0'},
+            'mapping_structure': (
+                ('title','title'),
+                ('summary', 'summary'),
+                ('link', 'link'),
+                ('published', 'pub_date'),
+            ),
+            'dates': {
+                'date_from': DATE_FROM,        # 01.06.26
+                'date_to': DATE_TO,          # 17.07.26
+            },
+            'number_of_articles': NUMBER_OF_ARTICLES_FROM_SOURCE
         }
     ]
 
