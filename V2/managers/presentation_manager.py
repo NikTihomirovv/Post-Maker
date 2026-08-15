@@ -1,21 +1,17 @@
-import logging
-from typing import List, Dict
-from pptx import Presentation
-from dataclasses import dataclass, field, is_dataclass
-from typing import List, Optional, Any
-from enum import Enum
-import logging
-from pptx import Presentation
-from pprint import pprint
 import base64
-import tempfile
+import logging
 import os
-import base64
-from PIL import Image as PILImage
+import tempfile
+from dataclasses import dataclass, field, is_dataclass
+from enum import Enum
+from pprint import pprint
+from typing import Any, Dict, List, Optional
+
 import cairosvg
+from PIL import Image as PILImage
+from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.dml.color import RGBColor
 
 
 class PresentationManager:
@@ -33,6 +29,9 @@ class PresentationManager:
 
         self._presentation = self._presentation_factory._create(**kwargs)
         self._presentation._create(_data)
+
+
+    
 
 
 
@@ -76,7 +75,6 @@ class _Presentation:
                 self._logger.debug(f'   ✅ EMU: {width_emu} x {height_emu}')
                 self._logger.debug(f'   ✅ Пиксели: {self._prs_width} x {self._prs_height} px')
             
-                
                 self._get_prs_slides(self._slides, _prs, self._prs_width, self._prs_height)
                 _prs.save('test.pptx')
 
@@ -367,11 +365,6 @@ class _Title(_BaseObj):
             self._logger.error(f'❌ Ошибка при создании Title: {e}')
 
 
-
-        
-
-
-
 class _SubTitle(_BaseObj):
     """Класс для описания подзаголовка."""
 
@@ -579,75 +572,151 @@ class PresentationData:
 
 
 
-def load_svg(file_path, width=1920, height=1080, as_base64=True):
-    """
-    Загружает SVG и конвертирует в PNG с указанными размерами через CairoSVG, возвращает base64
-    """
-    try:
-        # Конвертируем SVG в PNG с указанными размерами
-        png_data = cairosvg.svg2png(
-            url=file_path,
-            output_width=width,
-            output_height=height
-        )
-        
-        if not png_data:
-            print('❌ Ошибка: PNG пустой')
-            return None
-        
-        base64_str = base64.b64encode(png_data).decode('utf-8')
-        print('✅ Изображение получено')
-        return f"data:image/png;base64,{base64_str}"
-        
-    except Exception as e:
-        print(f'❌ Ошибка загрузки SVG: {e}')
-        return None
+# Паттерны ===============================================================================================
 
 
 
+class PresentationPatterns:
+    """Класс для хранения паттернов."""
+    
+    def __init__(self, settings):
+        self._logger = logging.getLogger(__name__)
+        self._settings = settings
 
 
-def create_test_prs_data() -> PresentationData:
-
-    return PresentationData(
-        name = 'Тема презентации',
-        slides = [
-
-            _Slide(
-                layout=_SlideLayout.BLANK,
-                objects=[
-
-                    _SlideObject(
-                        type=_ObjectType.IMAGE,
-                        content=load_svg('../resources/Presentations/Templates/Pattern_1/Backgrounds/title_slide.svg'),
-                        position=(0, 0),
-                        size=(1920, 1080),
-                        text_style=None,
-                        z_index=0
-                    ),
-
-                    _SlideObject(
-                        type=_ObjectType.TITLE,
-                        content='Заголовок презентации',
-                        position=(300, 300),
-                        size=(700, 200),
-                        vertically_centered=True,
-                        horizontally_centred=True,
-            
-                        text_style=_ObjectTextStyle(
-                            font_size=50,
-                            font_name='Arial',
-                            bold=False,
-                            italic=False,
-                            color='#FFFFFF',
-                            alignment='right'
-                        ),
-                        z_index=0
-                    )
-                ]
+    def _load_svg(self, _file_path, width=1920, height=1080) -> str:
+        """Загружает SVG и конвертирует в PNG с указанными размерами через CairoSVG, возвращает base64."""
+        try:
+            png_data = cairosvg.svg2png(
+                url=_file_path,
+                output_width=width,
+                output_height=height
             )
-        ]
-    )
+            
+            if not png_data:
+                self._logger.error('❌ Ошибка: PNG пустой')
+                return None
+            
+            base64_str = base64.b64encode(png_data).decode('utf-8')
+            self._logger.debug('✅ Изображение получено')
+            return f"data:image/png;base64,{base64_str}"
+            
+        except Exception as e:
+            self._logger.error(f'❌ Ошибка загрузки SVG: {e}')
+            return 'Не удалось получить изображение'
+
+
+    def get_pattern(self, _pattern_name: str, _data: Dict[Any]) -> PresentationData:
+
+        _data = {
+            'presentation_name': '',
+
+            # Первый слайд
+            'slide_1_text_1': 'Влияние загрязнения воздуха на активность заболевания у пациентов с ревматоидным артритом',
+            'slide_1_text_2': 'Sung Cheol Jung, Seojin Yang, Min Hyuk Lim, Saram Lee, Sung Ik Cho, Jin Kyun Park, Jun Won Park, Eun Bong Lee (Seoul National University College of Medicine, Республика Корея)',
+            'slide_1_text_3': 'Annals of the Rheumatic Diseases (ARD), The EULAR Journal, Elsevier, 2026',
+            'slide_1_text_4': 'Ревматоидный артрит (RA), загрязнение воздуха, PM2.5, воспаление, аутоиммунные заболевания',
+
+            # Второй слайд
+            'slide_2_text_1': 'Ревматоидный артрит — хроническое аутоиммунное заболевание, поражающее 0.5-1% взрослого населения мира. Курение уже признано основным фактором риска. Предыдущие исследования показали связь загрязнения воздуха с повышенной вероятностью развития РА.',
+            'slide_2_text_2': 'Неизвестно, влияет ли загрязнение воздуха на активность заболевания и провоцирует ли обострения у людей, уже имеющих РА. Также не изучены биологические механизмы этой связи.',
+            'slide_2_text_3': 'Определить, влияет ли загрязнение воздуха на активность заболевания и риск обострений у пациентов с ревматоидным артритом, а также исследовать биологические процессы, объясняющие эту связь.',
+            'slide_2_text_4': 'Воздействие загрязненного воздуха, особенно мелкодисперсных частиц PM2.5, связано с повышенной активностью РА и увеличением частоты обострений через механизмы окислительного стресса и воспаления.',
+
+            'slide_3_text_1': 'Проспективное когортное исследование (2021-2024) с анализом 12,583 амбулаторных визитов 1,070 пациентов. Дополнительно — чувствительный анализ с перекрестным дизайном "case-crossover" для учета временных факторов.',
+            'slide_3_text_2': '1,070 пациентов с ревматоидным артритом в крупном медицинском центре Южной Кореи.',
+            'slide_3_text_3': 'Оценка 6 загрязнителей воздуха: SO2, NO2, O3, CO, PM10, PM2.5 (ежемесячные уровни) Оценка активности заболевания и обострений при каждом визите Учет демографических, серологических, медикаментозных, социально-экономических и погодных факторов',
+            'slide_3_text_4': 'Сбор данных в реальных клинических условиях в течение 4 лет. Сопоставление уровней загрязнения с показателями активности заболевания.',
+            'slide_3_text_5': 'Условная логистическая регрессия для сравнения изменений внутри отдельных пациентов с учетом ежедневных концентраций загрязнителей перед каждым визитом.',
+
+            'slide_4_text_1': 'Более высокая концентрация PM2.5 связана с повышенной активностью заболевания и риском обострений. Наиболее выраженный эффект наблюдался при длительном воздействии (более 2 недель) высоких уровней PM2.5.',
+            'slide_4_text_1': 'Среди всех изученных загрязнителей (SO2, NO2, O3, CO, PM10, PM2.5) именно PM2.5 был основным фактором, связанным с активностью РА Частицы PM2.5 меньше эритроцитов и могут проникать из легких в кровоток, распространяясь по всему организму',
+            'slide_4_text_1': 'Исследование использовало чувствительный анализ для минимизации влияния постоянных факторов и исключения возможности, что активность заболевания влияла на измерения загрязнения. Статистические методы включали условную логистическую регрессию.',
+            'slide_4_text_1': 'Не указаны в статье.',
+
+            'slide_5_text_1': 'Воздействие загрязненного воздуха, особенно PM2.5, усиливает активность ревматоидного артрита и увеличивает риск болезненных обострений. Возможный механизм — стимуляция чрезмерной продукции активных форм кислорода, повреждение ДНК и активация воспалительных реакций.',
+            'slide_5_text_2': 'Результаты имеют важные клинические, биологические и общественно-здравоохранительные последствия Подтверждают, что вдыхаемые вещества влияют на риск и прогрессирование РА и других аутоиммунных заболеваний Могут помочь врачам объяснить непредсказуемые обострения РА Важны для разработки политики в области общественного здравоохранения',
+            'slide_5_text_3': 'Исследование проведено на корейской популяции с определенным генетическим фоном и в специфических экологических условиях Требуются дальнейшие исследования для подтверждения данных в других регионах мира Неизвестно, может ли улучшение качества воздуха напрямую снизить активность заболевания',
+            'slide_5_text_4': 'Необходимо определить, может ли снижение воздействия загрязнения или улучшение качества воздуха напрямую уменьшить активность заболевания у пациентов с РА. Также требуется проверка результатов в других популяциях.',
+            'slide_5_text_5': 'Длительное воздействие мелкодисперсных частиц PM2.5 в загрязненном воздухе повышает активность ревматоидного артрита и риск обострений, поэтому пациентам с РА рекомендуется избегать продолжительного нахождения в условиях плохого качества воздуха.',
+        }
+
+        match _pattern_name:
+            case 'pattern_1':
+                return PresentationData(
+                    name = _data.get('presentation_name'),
+                    slides = [
+
+                        # Титульный слайд
+                        _Slide(
+                            layout=_SlideLayout.BLANK,
+                            objects=[
+
+                                _SlideObject(
+                                    type=_ObjectType.IMAGE,
+                                    content=self._load_svg('../resources/Presentations/Templates/Pattern_1/Backgrounds/title_slide.svg'),
+                                    position=(0, 0),
+                                    size=(1920, 1080),
+                                    text_style=None,
+                                    z_index=0
+                                ),
+
+                                _SlideObject(
+                                    type=_ObjectType.TITLE,
+                                    content='Заголовок презентации',
+                                    position=(300, 300),
+                                    size=(700, 200),
+                                    vertically_centered=True,
+                                    horizontally_centred=True,
+                        
+                                    text_style=_ObjectTextStyle(
+                                        font_size=50,
+                                        font_name='Arial',
+                                        bold=False,
+                                        italic=False,
+                                        color='#FFFFFF',
+                                        alignment='right'
+                                    ),
+                                    z_index=0
+                                )
+                            ]
+                        )
+                    ]
+                )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 logging.basicConfig(
@@ -661,8 +730,7 @@ for logger_name in ['PIL', 'PIL.PngImagePlugin', 'svglib', 'svglib.svglib', 'rep
 
 settings = {}
 manager = PresentationManager(settings)
-prs_test_data = create_test_prs_data()
-manager.create(prs_test_data)
+manager.create()
 
 
 

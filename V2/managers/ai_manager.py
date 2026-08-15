@@ -270,10 +270,10 @@ class ImageModel:
         images = []
         _total = len(_prompts)
         
-        self._logger.info(f'🎨 Начинаем генерацию {_total} изображений...')
+        self._logger.info(f'    🎨 Начинаем генерацию {_total} изображений...')
         
         for idx, prompt in enumerate(_prompts, 1):
-            self._logger.info(f'  📝 {idx}/{_total}: {prompt}...')
+            self._logger.info(f'    📝 {idx}/{_total}: {prompt}...')
             
             try:
                 encoded_prompt = prompt.replace(' ', '%20').replace('"', '%22')
@@ -286,9 +286,9 @@ class ImageModel:
                 if _response.status_code == 200:
                     image_base64 = base64.b64encode(_response.content).decode('utf-8')
                     images.append(image_base64)
-                    self._logger.info(f'✅ Готово ({_delta:.2f} сек)')
+                    self._logger.info(f'    ✅ Готово ({_delta:.2f} сек)')
                 else:
-                    self._logger.error(f'❌ Ошибка: {_response.status_code}')
+                    self._logger.error(f'   ❌ Ошибка: {_response.status_code}')
                     images.append(None)
                     
             except Exception as e:

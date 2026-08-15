@@ -36,7 +36,7 @@ SHORT_DESCRIPTION_PROMPT = '''
     '''
 
 
-PROMPT_TO_IMAGE_MODEL = '''
+GENERATE_PROMPT_TO_IMAGE_MODEL = '''
     You are an expert at creating image prompts for scientific articles.
     
     TASK: Create EXACTLY 5 image prompts based on the MAIN TOPIC of the article.
@@ -54,6 +54,15 @@ PROMPT_TO_IMAGE_MODEL = '''
     IMPORTANT: Return ONLY this single line with 5 prompts. No additional text.
     
     Article topic to visualize:
+'''
+
+
+DEFAULT_PROMPT_TO_IMAGE_MODEL = '''
+    Scientific illustration of the main discovery from the article.
+    Medical visualization of the research topic.
+    Laboratory setting showing key experimental setup.
+    Molecular or cellular level representation of the study findings.
+    Educational infographic summarizing the main research results.
 '''
 
 

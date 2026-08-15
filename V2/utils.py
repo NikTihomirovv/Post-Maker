@@ -3,6 +3,19 @@ from deep_translator import GoogleTranslator
 import logging
 import time
 import re
+from langdetect import detect, DetectorFactory
+
+
+def detect_language(text: str) -> str | None:
+    DetectorFactory.seed = 0
+    if not text or len(text.strip()) < 10:
+        return None
+    
+    try:
+        lang = detect(text[:500])
+        return lang
+    except Exception:
+        return None
 
 
 def translate_long_text(text: str, 
