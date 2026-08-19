@@ -388,22 +388,6 @@ class Executor(Composition):
         except Exception as e:
             self._logger.error(f'❌ Критическая ошибка при сохранении в бд: {e}')
             traceback.print_exc()
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     def publicate_unpublished(self) -> None:
@@ -434,32 +418,37 @@ class Executor(Composition):
 
                 self._logger.info(f'    ✅ Создаем публикацию для поста {_post_id}')
 
-                post_text = f"""
-                🔬 {_post_title}
-                
-                {_post_text}
-                
-                📌 Источник: {_post_source}
-                📅 Дата: {_post_pub_date}
-                🔗 Подробнее: {_post_link}
-                
-                #наука #исследование #медицина
-                """
+                if self._validate(_post_text):
 
-                result = self.vk_manager.create_post(message=post_text.strip())            
-                if result:
-                    _published_count += 1
-                    self._logger.info(f'    ✅ Пост создан (ID: {_post_id})')
-                                        
-                    self.db_manager.update_field_by_id(
-                        _table=self._POST_UPDATE_TABLE,
-                        _id=_post_id,
-                        _field='is_published_vk',
-                        _value=1
-                    )
+                    post_text = f"""
+                    🔬 {_post_title}
                     
-                else:
-                    self._logger.error(f'   ❌ Ошибка публикации (ID: {_post_id})')
+                    {_post_text}
+                    
+                    📌 Источник: {_post_source}
+                    📅 Дата: {_post_pub_date}
+                    🔗 Подробнее: {_post_link}
+                    
+                    #наука #исследование #медицина
+                    """
+
+                    result = self.vk_manager.create_post(message=post_text.strip())            
+                    if result:
+                        _published_count += 1
+                        self._logger.info(f'    ✅ Пост создан (ID: {_post_id})')
+                                            
+                        self.db_manager.update_field_by_id(
+                            _table=self._POST_UPDATE_TABLE,
+                            _id=_post_id,
+                            _field='is_published_vk',
+                            _value=1
+                        )
+                        
+                    else:
+                        self._logger.error(f'   ❌ Ошибка публикации (ID: {_post_id})')
+
+                else: 
+                    self._logger.error(f'   ❌ Пост отклонен валидатором')
                                     
                 time.sleep(2)
 
@@ -469,6 +458,89 @@ class Executor(Composition):
         except Exception as e:
             self._logger.error(f'❌ Критическая ошибка при публикации: {e}')
             traceback.print_exc()
+
+    def _validate(self, text: str) -> bool:
+        bad_words = (
+            # === ПОЛИТИКА И ГЕОПОЛИТИКА ===
+            'россия', 'росси', 'russia', 'russian', 'руссия',
+            'рф', 'rф', 'москва', 'кремль', 'путин', 'putin',
+            'медведев', 'мишустин', 'собянин', 'лаваров',
+            'украин', 'ukraine', 'ukrainian', 'ukraina',
+            'киев', 'kiev', 'kyiv', 'зеленский', 'zelensky',
+            'сша', 'usa', 'america', 'америка', 'нато', 'nato',
+            'европа', 'europe', 'брюссель', 'brussels',
+            'китай', 'china', 'beijing', 'пекин',
+
+            # === ВОЕННАЯ ТЕМАТИКА ===
+            'война', 'war', 'военный', 'military', 'спецоперация',
+            'сво', 'svo', 'спец операция', 'наступление',
+            'атака', 'attack', 'удар', 'strike', 'обстрел',
+            'бомбардировка', 'бомба', 'ракета', 'missile',
+            'танк', 'tank', 'солдат', 'soldier', 'армия', 'army',
+            'донбасс', 'donbas', 'донецк', 'donetsk', 'луганск', 'luhansk',
+            'крым', 'crimea', 'севастополь', 'мариуполь', 'mariupol',
+            'буча', 'bucha', 'ирпень', 'ирпин', 'харьков', 'kharkiv',
+            'калашников', 'автомат', 'граната', 'снаряд',
+            'беспилотник', 'дрон', 'drone', 'бпла',
+
+            # === ЛГБТ И ГЕНДЕРНАЯ ТЕМАТИКА ===
+            'лгбт', 'lgbt', 'гей', 'gay', 'лесби', 'lesbian',
+            'транс', 'trans', 'трансгендер', 'transgender',
+            'бисексуал', 'bisexual', 'квир', 'queer',
+            'прайд', 'pride', 'гомосексуал', 'homosexual',
+            'нетрадиционный', 'ориентация', 'сексуальность',
+            'гендер', 'gender', 'небинарный', 'non-binary',
+            'феминизм', 'feminism', 'феминист',
+
+            # === РЕЛИГИЯ И ЦЕРКОВЬ ===
+            'церковь', 'church', 'храм', 'монастырь',
+            'патриарх', 'патриархия', 'кирилл', 'православие',
+            'ислам', 'islam', 'мусульмане', 'muslim',
+            'католик', 'catholic', 'протестант', 'protestant',
+            'иудаизм', 'judaism', 'буддизм', 'buddhism',
+            'бог', 'god', 'иисус', 'jesus', 'аллах',
+            'религия', 'religion', 'священник', 'priest',
+
+            # === ОППОЗИЦИЯ И СВОБОДА СЛОВА ===
+            'навальный', 'navalny', 'оппозиция', 'opposition',
+            'протест', 'protest', 'митинг', 'rally',
+            'задержание', 'арест', 'тюрьма', 'prison',
+            'свобода', 'freedom', 'права', 'human rights',
+            'политзаключенный', 'политический',
+            'независимый', 'independent', 'иноагент',
+            'экстремизм', 'extremism', 'терроризм',
+
+            # === НАРКОТИКИ ===
+            'наркотик', 'drugs', 'наркота', 'марихуана',
+            'каннабис', 'cannabis', 'трава', 'weed', 'гашиш',
+            'кокаин', 'cocaine', 'героин', 'heroin', 'метадон',
+            'экстази', 'mdma', 'амфетамин', 'amphetamine',
+            'закладка', 'кладмен', 'соль', 'спайс',
+            'психоделик', 'psychedelic', 'лсд', 'lsd',
+
+            # === ВЗРОСЛЫЙ КОНТЕНТ ===
+            'порно', 'porn', 'порнография', 'pornography',
+            'секс', 'sex', 'эротика', 'erotica', '18+',
+            'интим', 'intimate', 'обнаженный', 'naked',
+            'эскорт', 'escort', 'проститутка', 'prostitute',
+
+            # === ДЕЗИНФОРМАЦИЯ ===
+            'фейк', 'fake', 'ложь', 'lie', 'дезинформация',
+            'пропаганда', 'propaganda', 'манипуляция',
+            'кремлевский', 'кремль', 'агент', 'agent',
+            'заказной', 'заказная статья', 'заказное'
+        )
+        
+        if not text or not isinstance(text, str):
+            return True
+        
+        text_lower = text.lower()
+    
+        for word in bad_words:
+            if word in text_lower:
+                return False  # Найдено плохое слово
+        
+        return True  # Всё чисто
 
 
     def save_unpublished_to_file(self) -> None:
