@@ -1,7 +1,7 @@
 from settings import Settings
 from managers.parsers_manager import ParsersManager
 from managers.posts_manager import PostManager
-from managers.ai_manager import AIManager
+from managers.ai_manager.ai_manager import AIManager
 from managers.db_manager import DBManager
 from managers.vk_manager import VKManager
 
@@ -12,7 +12,7 @@ class Composition:
     def __init__(self):
 
         self.settings = Settings()
-        self.ai_manager = AIManager(self.settings)
+        self.ai_manager = AIManager()
         self.db_manager = DBManager(self.settings)
         self.post_manager = PostManager(self.settings)
         self.parsers_manager = ParsersManager(self.settings)

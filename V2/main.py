@@ -211,7 +211,7 @@ class Executor(Composition):
             self._logger.info(f'    ✅ Получено {len(_prompt_to_image_models)} промптов')
             self._logger.info(f'    ✅ Генерируем изображения')
                                         
-            _images = self.ai_manager.generate_image(_prompt_to_image_models[:5])
+            _images = self.ai_manager.generate_images(_prompt_to_image_models[:5])
             if _images: 
                 self._logger.info(f'    ✅ Получено {len(_images)} изображений')
                 return _images
@@ -312,7 +312,7 @@ class Executor(Composition):
 
             _source_lang='en'
             _target_lang='ru'
-            _max_attempts = 10
+            _max_attempts = 15
 
             for attempt in range(1, _max_attempts + 1):
                 self._logger.info(f'    ✅ Попытка перевода {attempt}/{_max_attempts}')

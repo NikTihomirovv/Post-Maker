@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-DAYS_DELTA = 1
-NUMBER_OF_ARTICLES_FROM_SOURCE = 1
+DAYS_DELTA = 2
+NUMBER_OF_ARTICLES_FROM_SOURCE = 10
 
 today = datetime.now()
 yesterday = today - timedelta(days=DAYS_DELTA)
@@ -24,7 +24,7 @@ class Settings:
 
     # ==============================================================================================
     mode = {
-        'debug': True,                              # Проходит весь workflow кроме публикации, использует бесплатные модели
+        'debug': False,                              # Проходит весь workflow кроме публикации, использует бесплатные модели
         'text_only': True,                           # Создает только тектсовые посты
     }
 
@@ -34,7 +34,7 @@ class Settings:
         'generate_img': True,
         'use_default_img': False,                    # применится если генерация отключена
         'generate_prompt_to_img_model': True,
-        'generate_short_description': False,
+        'generate_short_description': True,
         'translate': True,
         'save_to_db': True,
         'save_to_file': True,
@@ -110,24 +110,12 @@ class Settings:
     # AI ===========================================================================================
     models = {
         'text_model': {
-            'model': 'deepseek-r1:7b',       # deepseek-r1:7b
-            'url': 'http://localhost:11434/api/generate',
-            'stream': False,                 # Постепенная выдача ответа по токенам (эффект печатания)
-            'temperature': 0.7,              # Креативность/случайность (0.0 - детерминировано, 1.0 - творчески)
-            'top_p': 0.9,                    # Разнообразие выбора (ядровая выборка, отсекает маловероятные токены)
-            'max_tokens': 8192,              # Максимальная длина ответа в токенах (~3-4 на символ слов для русского)
             'prompts': {
                 'short_description_prompt': SHORT_DESCRIPTION_PROMPT,
                 'presentation_structure_prompt': PRESENTATION_STRUCTURE_PROMPT,
                 'generate_prompt_to_image_model': GENERATE_PROMPT_TO_IMAGE_MODEL,
                 'default_prompt_to_image_model': DEFAULT_PROMPT_TO_IMAGE_MODEL,
             }
-        },
-        'image_model': {
-            'model': 'pollinations',
-            'url': 'https://image.pollinations.ai/prompt/',
-            'width': '1024',
-            'height': '1024',
         }
     }
 
