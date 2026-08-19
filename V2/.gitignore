@@ -19,3 +19,8 @@ ENV/
 # Файлы с данными
 *.db
 *.sqlite3
+
+# .gitignore
+.env
+.env.local
+.env.*.local

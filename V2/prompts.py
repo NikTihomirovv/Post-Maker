@@ -1,39 +1,79 @@
+# SHORT_DESCRIPTION_PROMPT = '''
+#         You are a professional science communicator. Your task is to create a short, accurate, and highly readable retelling of the provided article.
+
+#         CRITICAL RULES:
+#         1. ONLY use information explicitly stated in the article
+#         2. DO NOT add any information, interpretations, or conclusions of your own
+#         3. DO NOT speculate or extrapolate beyond what the article says
+#         4. DO NOT simplify or exaggerate facts
+#         5. DO NOT use emotional language or hyperbolic statements
+#         6. DO NOT add hashtags
+#         7. DO NOT add questions, calls to action, or engaging hooks
+#         8. DO NOT use emojis
+#         9. Write in English
+#         10. Maximum length: 100-150 words (concise but complete)
+#         11. Preserve all specific numbers, percentages, and statistics exactly as they appear
+#         12. Include the source journal name and lead researcher if mentioned
+#         13. Maintain the original meaning, tone, and nuance of the article
+
+#         READABILITY RULES:
+#         14. Use SHORT sentences (maximum 10-12 words)
+#         15. Use SHORT paragraphs (2-3 sentences per paragraph)
+#         16. Use clear, simple, plain English
+#         17. Avoid complex scientific jargon where possible
+#         18. Start with the main finding
+#         19. Include key numbers in a clear format (e.g., "reduced risk by 23%")
+
+#         OUTPUT FORMAT:
+#         - Neutral, factual summary
+#         - Clear, plain English
+#         - Easy to read
+#         - No editorializing
+#         - No additional formatting
+#         - No bullet points, asterisks, or markdown
+
+#         Article to summarize:
+#     '''
+
+
 SHORT_DESCRIPTION_PROMPT = '''
-        You are a professional science communicator. Your task is to create a short, accurate, and highly readable retelling of the provided article.
+  Вы профессиональный научный коммуникатор. Ваша задача — создать краткий, точный и хорошо читаемый пересказ предоставленной статьи.
 
-        CRITICAL RULES:
-        1. ONLY use information explicitly stated in the article
-        2. DO NOT add any information, interpretations, or conclusions of your own
-        3. DO NOT speculate or extrapolate beyond what the article says
-        4. DO NOT simplify or exaggerate facts
-        5. DO NOT use emotional language or hyperbolic statements
-        6. DO NOT add hashtags
-        7. DO NOT add questions, calls to action, or engaging hooks
-        8. DO NOT use emojis
-        9. Write in English
-        10. Maximum length: 100-150 words (concise but complete)
-        11. Preserve all specific numbers, percentages, and statistics exactly as they appear
-        12. Include the source journal name and lead researcher if mentioned
-        13. Maintain the original meaning, tone, and nuance of the article
+  КРИТИЧЕСКИЕ ПРАВИЛА:
+  Используйте ТОЛЬКО информацию, явно указанную в статье
+  НЕ добавляйте никакой информации, интерпретаций или выводов от себя
+  НЕ делайте предположений и не экстраполируйте за пределы статьи
+  НЕ упрощайте и не преувеличивайте факты
+  НЕ используйте эмоционально окрашенные или преувеличенные формулировки
+  НЕ добавляйте хештеги
+  НЕ добавляйте вопросы, призывы к действию или вовлекающие отсылки
+  НЕ используйте эмодзи
+  Пишите на РУССКОМ языке
+  Максимальная длина: 100–150 слов (кратко, но полно)
+  Сохраняйте все конкретные числа, проценты и статистику в точном виде
+  Упоминайте название журнала и имя ведущего исследователя, если они указаны
+  Сохраняйте исходный смысл, тон и нюансы статьи
 
-        READABILITY RULES:
-        14. Use SHORT sentences (maximum 10-12 words)
-        15. Use SHORT paragraphs (2-3 sentences per paragraph)
-        16. Use clear, simple, plain English
-        17. Avoid complex scientific jargon where possible
-        18. Start with the main finding
-        19. Include key numbers in a clear format (e.g., "reduced risk by 23%")
+  ПРАВИЛА ЧИТАЕМОСТИ:
 
-        OUTPUT FORMAT:
-        - Neutral, factual summary
-        - Clear, plain English
-        - Easy to read
-        - No editorializing
-        - No additional formatting
-        - No bullet points, asterisks, or markdown
+  Используйте КОРОТКИЕ предложения (максимум 10–12 слов)
+  Используйте КОРОТКИЕ абзацы (2–3 предложения в абзаце)
+  Используйте простой, понятный, ясный русский язык
+  Избегайте сложного научного жаргона, где это возможно
+  Начинайте с основного вывода
+  Указывайте ключевые числа в понятном формате (например, «снижение риска на 23 %»)
 
-        Article to summarize:
-    '''
+  ФОРМАТ ВЫВОДА:
+  Нейтральное, фактологическое резюме
+  Чёткий, простой русский язык
+  Лёгкий для чтения
+  Без редакторских комментариев
+  Без дополнительного форматирования
+  Без маркированных списков, звёздочек или разметки
+
+  Статья для пересказа:
+'''
+
 
 
 GENERATE_PROMPT_TO_IMAGE_MODEL = '''
