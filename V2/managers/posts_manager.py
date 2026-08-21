@@ -99,7 +99,7 @@ class _PostFactory:
             pub_date = kwargs.get('pub_date'),
             
             is_published_vk = kwargs.get('is_published_vk'),
-            is_saved_to_folder =kwargs.get('is_saved_to_folder'),
+            is_saved_to_folder = kwargs.get('is_saved_to_folder'),
 
             image = images
         )

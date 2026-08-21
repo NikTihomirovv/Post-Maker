@@ -23,6 +23,38 @@ class Executor(Composition):
         self._DEFAULT_IMG_NAMES = ['default_img_1.jpg', 'default_img_2.jpg', 'default_img_3.jpg', 'default_img_4.jpg', 'default_img_5.jpg']
         self._DEFAULT_IMG_DIR = Path(__file__).parent / 'resources'
 
+        self.SUMMARY_GOT_ARTICLES = 0
+        self.SUMMARY_GOT_NEW = 0 
+        self.SUMMARY_PROCESSED = 0 
+        self.SUMMARY_PROCESSED_PLUG = 0 
+        self.SUMMARY_SAVED = 0 
+        self.SUMMARY_PUBLICATED = 0 
+        self.SUMMARY_SAVED_TO_FOLDER = 0 
+        self.VALIDATION_ERRORS_WORDS = []
+        self.VALIDATION_ERRORS = 0
+        self.TITLES_TRANSLATED = 0
+        self.TEXTS_TRANSLATED = 0
+        self.AI_DESC_CREATED = 0 
+
+
+    def _log_summary(self):
+        self._logger.info(f'')
+        self._logger.info(f'='*50)
+        self._logger.info(f'Найдено статей: {self.SUMMARY_GOT_ARTICLES}')
+        self._logger.info(f'Новые статьи: {self.SUMMARY_GOT_NEW}')
+        self._logger.info(f'Обработано статей: {self.SUMMARY_PROCESSED}')
+        self._logger.info(f'Создано ai текстов: {self.AI_DESC_CREATED}')
+        self._logger.info(f'Переведено заголовков: {self.TITLES_TRANSLATED}')
+        self._logger.info(f'Переведено тектов: {self.TEXTS_TRANSLATED}')
+        self._logger.info(f'Стать с загдушкой: {self.SUMMARY_PROCESSED_PLUG}')
+        self._logger.info(f'Сохранено в бд: {self.SUMMARY_SAVED}')
+        self._logger.info(f'Опубликовано: {self.SUMMARY_PUBLICATED}')
+        self._logger.info(f'Сохранено в папку: {self.SUMMARY_SAVED_TO_FOLDER}')
+
+        self._logger.info(f'Отклонено валидатором: {self.VALIDATION_ERRORS}')
+        self._logger.info(f'Найдены запрещенные слова: {", ".join(self.VALIDATION_ERRORS_WORDS)}')
+        
+
 
     def start(self):
         _empty_dataclass = self.post_manager.get_empty_dataclass()
@@ -46,6 +78,7 @@ class Executor(Composition):
                 return None
 
             self._logger.info(f'✅ Получено {len(_parsed_articles)} статей из источников')
+            self.SUMMARY_GOT_ARTICLES = len(_parsed_articles)
 
             for _parsed_article in _parsed_articles:
 
@@ -69,6 +102,7 @@ class Executor(Composition):
                 unprocesed_articles.append(_parsed_article)
 
             self._logger.info(f'✅ Найдено {_new_item} новыйх статей. Всего получено {len(_parsed_articles)} статей из источников' )
+            self.SUMMARY_GOT_NEW = _new_item
             return unprocesed_articles if unprocesed_articles else []
 
         except Exception as e:
@@ -119,7 +153,8 @@ class Executor(Composition):
                 _unprocessed_article['ai_description_translated'] = 'Не обработано'
                 _unprocessed_article['image'] = []
 
-                self._create_post_object(_unprocessed_article)
+                if self._create_post_object(_unprocessed_article):
+                    self.SUMMARY_PROCESSED_PLUG += 1
             return 
 
         except Exception as e:
@@ -144,7 +179,11 @@ class Executor(Composition):
                 _title_translated = self._add_translation(_text=_article_title)
                 _summary_translated = self._add_translation(_text=_article_summary)
                 _article_text_translated = self._add_translation(_text=_article_text)
-            
+
+                self.TITLES_TRANSLATED += 1 if _title_translated != 'Не переведено' else 0
+                self.TEXTS_TRANSLATED += 1 if _ai_description_translated != 'Не переведено' else 0
+                self.AI_DESC_CREATED += 1 if _ai_description != '' else 0
+                    
                 _unprocessed_article['is_published_vk'] = False
                 _unprocessed_article['is_saved_to_folder'] = False
                 _unprocessed_article['ai_description'] = _ai_description if _ai_description else ''
@@ -154,7 +193,8 @@ class Executor(Composition):
                 _unprocessed_article['ai_description_translated'] = _ai_description_translated if _ai_description_translated else ''
                 _unprocessed_article['image'] = _images if _images else []
 
-                self._create_post_object(_unprocessed_article)
+                if self._create_post_object(_unprocessed_article):
+                    self.SUMMARY_PROCESSED += 1
             return 
     
         except Exception as e:
@@ -339,25 +379,25 @@ class Executor(Composition):
             self._logger.error(f'❌ Ошибка при переводе текста: {e}')
 
 
-    def _create_post_object(self, _extended_article: dict[Any]) -> None:
+    def _create_post_object(self, _extended_article: dict[Any]) -> bool:
 
         try:
             if not isinstance(_extended_article, dict):
                 self._logger.error(f'   ❌ Ошибка в получении расширенных статей')
-                return None
+                return False
 
             else: 
-                self._logger.error(f'    ✅ Получена расширенная статья для создания объектов поста')
+                self._logger.info(f'    ✅ Получена расширенная статья для создания объектов поста')
 
             _post_obj = self.post_manager.create_post(**_extended_article)
             self._save_to_db(_post_obj)
             
             if not _post_obj:
                 self._logger.error(f'   ❌ Не удалось создать объект поста')
-                return None
+                return False
             
             self._logger.info(f'    ✅ Успешно создан объект поста для статьи')
-            return None
+            return True
 
         except Exception as e:
             self._logger.error(f'❌ Ошибка в создании объекта поста: {e}')
@@ -380,6 +420,7 @@ class Executor(Composition):
                              
             if success:
                 self._logger.info(f'    ✅ Пост успешно сохранен')
+                self.SUMMARY_SAVED += 1
             else:
                 self._logger.error(f'   ❌ Ошибка сохранения поста')
 
@@ -418,7 +459,7 @@ class Executor(Composition):
 
                 self._logger.info(f'    ✅ Создаем публикацию для поста {_post_id}')
 
-                if self._validate(_post_text):
+                if self._validate(_post_text) and self._validate(_post_title):
 
                     post_text = f"""
                     🔬 {_post_title}
@@ -434,6 +475,7 @@ class Executor(Composition):
 
                     result = self.vk_manager.create_post(message=post_text.strip())            
                     if result:
+                        self.SUMMARY_PUBLICATED += 1
                         _published_count += 1
                         self._logger.info(f'    ✅ Пост создан (ID: {_post_id})')
                                             
@@ -464,7 +506,7 @@ class Executor(Composition):
             # === ПОЛИТИКА И ГЕОПОЛИТИКА ===
             'россия', 'росси', 'russia', 'russian', 'руссия',
             'рф', 'rф', 'москва', 'кремль', 'путин', 'putin',
-            'медведев', 'мишустин', 'собянин', 'лаваров',
+            'медведев', 'мишустин', 'собянин', 'лавров',
             'украин', 'ukraine', 'ukrainian', 'ukraina',
             'киев', 'kiev', 'kyiv', 'зеленский', 'zelensky',
             'сша', 'usa', 'america', 'америка', 'нато', 'nato',
@@ -522,7 +564,7 @@ class Executor(Composition):
             'порно', 'porn', 'порнография', 'pornography',
             'секс', 'sex', 'эротика', 'erotica', '18+',
             'интим', 'intimate', 'обнаженный', 'naked',
-            'эскорт', 'escort', 'проститутка', 'prostitute',
+            'эскорт', 'escort', 'проститутка', 'prostitute', 'насилие', 'насилию'
 
             # === ДЕЗИНФОРМАЦИЯ ===
             'фейк', 'fake', 'ложь', 'lie', 'дезинформация',
@@ -537,7 +579,14 @@ class Executor(Composition):
         text_lower = text.lower()
     
         for word in bad_words:
+            if word == 'Не переведено':
+                self._logger.error(f'❌ Не переведено')
+                return False
+
             if word in text_lower:
+                self._logger.error(f'❌ Найдено запрещенное слово: {word}')
+                self.VALIDATION_ERRORS_WORDS.append(word)
+                self.VALIDATION_ERRORS += 1
                 return False  # Найдено плохое слово
         
         return True  # Всё чисто
@@ -633,6 +682,7 @@ class Executor(Composition):
                         continue
 
                 _published_count+=1
+                self.SUMMARY_SAVED_TO_FOLDER += 1
 
                 self.db_manager.update_field_by_id(
                     _table=self._POST_UPDATE_TABLE,
@@ -670,6 +720,7 @@ def main():
 
     logic.publicate_unpublished()
     logic.save_unpublished_to_file()
+    logic._log_summary()
     logic.destroy()
 
 if __name__ == '__main__':
